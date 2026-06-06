@@ -40,8 +40,6 @@ if test (hostname) = will-desktop
     abbr -a ppllama '~/Documents/sys-prompts/llama-server-cpp.fish'
     abbr -a png '~/.local/bin/organize_pngs.sh'
     abbr -a qc 'cd ~/gemini/claude && claude'
-    abbr -a tile '#!/usr/bin/env fish
-        --session ~/.config/kitty/genact_grid.session &'
 
     function hey
         /home/will/.local/bin/hey_claude.py $argv
