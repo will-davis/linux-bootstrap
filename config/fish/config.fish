@@ -9,6 +9,8 @@ end
 # -g = this session's $PATH only; the universal-variable default pollutes
 # fish_variables, which this repo deliberately doesn't track.
 fish_add_path -g ~/.local/bin
+# ~/.cargo/bin: rustup-managed cargo + `cargo install` binaries (probe-rs, etc.).
+fish_add_path -g ~/.cargo/bin
 
 # ── kitty / TERM handling ───────────────────────────────────────────────────
 # kitty sets TERM=xterm-kitty. If this host's terminfo db has no entry for it,
@@ -28,6 +30,8 @@ command -q zoxide; and zoxide init fish | source
 command -q fzf; and fzf --fish 2>/dev/null | source
 
 # ── universal ───────────────────────────────────────────────────────────────
+# github discovery across FS boundaries
+set -gx GIT_DISCOVERY_ACROSS_FILESYSTEM 1
 #### FIX ls ####
 alias ls='ls -1 --color=auto'
 

@@ -45,33 +45,15 @@ require('lazy').setup({
   {
     'nvim-telescope/telescope.nvim',
     branch = '0.1.x',
-    dependencies = {
-      'nvim-lua/plenary.nvim',
-      { 'nvim-telescope/telescope-fzf-native.nvim', build = 'make' },  -- the real fzf algo
-    },
-    config = function()
-      local telescope = require('telescope')
-      telescope.setup({
-	defaults = {
-	  file_ignore_patterns = { '%.git/' },   -- never the .git object soup
-	},
-	pickers = {
-	  find_files = { hidden = true },         -- fd --hidden  → shows .config etc.
-	  -- find_files = { hidden = true, no_ignore = true },  -- add to also show gitignored
-	  live_grep  = { additional_args = { '--hidden' } },    -- grep into dotfiles too
-	},
-      })
-      pcall(telescope.load_extension, 'fzf')      -- no-op if the build isn't ready yet
-    end,
+    dependencies = { 'nvim-lua/plenary.nvim' },
     keys = {
       { '<leader>ff', '<cmd>Telescope find_files<cr>', desc = 'Find files' },
       { '<leader>fg', '<cmd>Telescope live_grep<cr>', desc = 'Live grep' },
       { '<leader>fb', '<cmd>Telescope buffers<cr>', desc = 'Buffers' },
       { '<leader>fh', '<cmd>Telescope help_tags<cr>', desc = 'Help tags' },
       { '<leader>fc', '<cmd>Telescope colorscheme enable_preview=true<cr>', desc = 'Colorschemes' },
-      { '<leader>fa', '<cmd>Telescope find_files hidden=true no_ignore=true<cr>', desc = 'Find files (all + ignored)' },
     },
-  },  
+  },
   {
     'hrsh7th/nvim-cmp',
     event = 'CmdlineEnter',
