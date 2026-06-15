@@ -14,6 +14,22 @@ vim.opt.rtp:prepend(lazypath)
 vim.g.mapleader = ' '
 vim.opt.clipboard = 'unnamedplus'
 vim.opt.number = true
+
+-- OSC 52 clipboard for SSH sessions.
+-- On a remote box there's no display server to reach, so the system clipboard
+-- is unreachable the usual way ("clipboard: No provider"). OSC 52 is a terminal
+-- escape sequence: nvim hands yanked text to the terminal emulator (kitty)
+-- in-band over the existing tty, and kitty writes it to the desktop clipboard.
+-- No X-forwarding, no clipboard daemon. Guarded so local machines keep their
+-- native wl-clipboard provider (which, unlike OSC 52, also reads reliably).
+if vim.env.SSH_TTY and vim.fn.has('nvim-0.10') == 1 then
+  local osc52 = require('vim.ui.clipboard.osc52')
+  vim.g.clipboard = {
+    name = 'OSC 52',
+    copy = { ['+'] = osc52.copy('+'), ['*'] = osc52.copy('*') },
+    paste = { ['+'] = osc52.paste('+'), ['*'] = osc52.paste('*') },
+  }
+end
 vim.opt.hlsearch = false
 
 -- Plugins
