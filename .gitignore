@@ -2,3 +2,4 @@
 # mode 600, and constantly rewritten — never track it. It lands in the repo
 # tree because ~/.config/fish is a symlink into this repo.
 config/fish/fish_variables
+CLAUDE.md
