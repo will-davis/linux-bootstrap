@@ -29,10 +29,10 @@ command -q zoxide; and zoxide init fish | source
 # alt-c cd. Older fzf (Ubuntu 24.04 ships 0.44) errors on --fish, hence 2>/dev/null.
 command -q fzf; and fzf --fish 2>/dev/null | source
 
-# ── universal ───────────────────────────────────────────────────────────────
-# github discovery across FS boundaries
-set -gx GIT_DISCOVERY_ACROSS_FILESYSTEM 1
-#### FIX ls ####
+# ── ENV VARIABLES ───────────────────────────────────────────────────────────
+set -gx GIT_DISCOVERY_ACROSS_FILESYSTEM 1 # github discovery across FS boundaries
+
+# ── OTHER --------───────────────────────────────────────────────────────────
 alias ls='ls -1 --color=auto'
 
 abbr -a y 'yazi'
