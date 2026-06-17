@@ -25,6 +25,7 @@ curl -fsSL https://raw.githubusercontent.com/will-davis/linux-bootstrap/main/boo
 |------|--------|
 | Packages | fish, fzf, zoxide, fd, ripgrep, btop, git, curl |
 | neovim | pacman: distro package (current). apt: GitHub release tarball → `/opt`, symlinked to `/usr/local/bin/nvim` (apt's 0.9.x is too old for lazy.nvim). x86_64 + aarch64. |
+| eza | pacman: distro package. apt: GitHub release binary → `~/.local/bin/eza` (not in Ubuntu 24.04 / Debian bookworm repos). x86_64 + aarch64. The `ls`/`l` abbrs map to it, but only fire when eza is present. |
 | fd shim | Ubuntu packages fd as `fd-find` with binary `fdfind`; a `~/.local/bin/fd` symlink restores the real name |
 | Default shell | `sudo chsh -s (command -v fish)`, skipped if already set |
 | Configs | Symlinks `~/.config/fish` and `~/.config/nvim` into this repo (existing dirs are backed up, not deleted). Edits on any machine can be committed back. |

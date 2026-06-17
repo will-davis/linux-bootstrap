@@ -43,7 +43,7 @@ if command -v pacman >/dev/null; then
     # should be fully synced before adding packages anyway.
     info "pacman: syncing and installing packages"
     sudo pacman -Syu --needed --noconfirm \
-        fish fzf zoxide fd ripgrep btop neovim git curl
+        fish fzf zoxide fd ripgrep btop neovim eza git curl
 elif command -v apt-get >/dev/null; then
     PM=apt
     info "apt: updating and installing packages"
@@ -92,6 +92,28 @@ if [[ $PM == apt ]]; then
     # fdfind -> fd shim (config.fish puts ~/.local/bin on PATH)
     mkdir -p "$HOME/.local/bin"
     ln -sf "$(command -v fdfind)" "$HOME/.local/bin/fd"
+
+    # eza: not in Ubuntu 24.04 / Debian bookworm repos, so grab the release
+    # binary (a single self-contained file) like we do neovim. ~/.local/bin
+    # is already on PATH via config.fish, so no sudo and trivial removal.
+    if command -v eza >/dev/null; then
+        info "eza already present — skipping"
+    else
+        case "$(uname -m)" in
+            x86_64)  EZA_ARCH=x86_64 ;;
+            aarch64) EZA_ARCH=aarch64 ;;
+            *)       EZA_ARCH="" ;;
+        esac
+        if [[ -n $EZA_ARCH ]]; then
+            info "installing eza (latest release binary, $EZA_ARCH) to ~/.local/bin"
+            # Tarball holds a single ./eza; extract just that into ~/.local/bin.
+            curl -fsSL "https://github.com/eza-community/eza/releases/latest/download/eza_${EZA_ARCH}-unknown-linux-gnu.tar.gz" \
+                | tar -xz -C "$HOME/.local/bin"
+            chmod +x "$HOME/.local/bin/eza"
+        else
+            warn "unsupported arch $(uname -m) — skipping eza; the ls/l abbrs stay on coreutils ls"
+        fi
+    fi
 fi
 
 # ── default shell ───────────────────────────────────────────────────────────

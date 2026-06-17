@@ -33,8 +33,15 @@ command -q fzf; and fzf --fish 2>/dev/null | source
 set -gx GIT_DISCOVERY_ACROSS_FILESYSTEM 1 # github discovery across FS boundaries
 
 # ── OTHER --------───────────────────────────────────────────────────────────
-alias ls='ls -1 --color=auto'
 
+# Hotwire muscle-memory `ls` -> eza. Guarded: on a box without eza (fresh, or
+# unsupported arch) these don't fire and `ls` stays real coreutils ls instead
+# of erroring "command not found: eza". abbrs are interactive + command-position
+# only, so scripts, functions, and `sudo ls` still get coreutils ls regardless.
+if command -q eza
+    abbr -a ls 'eza'
+    abbr -a l 'eza'
+end
 abbr -a y 'yazi'
 abbr -a pngnumber 'set a 1; for i in *; mv -- "$i" "$a.png"; set a (math $a + 1); end'
 
