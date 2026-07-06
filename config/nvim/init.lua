@@ -89,13 +89,79 @@ require('lazy').setup({
     },
   },  
   {
+    'williamboman/mason.nvim',
+    config = function() require('mason').setup() end,
+  },
+  {
+    'williamboman/mason-lspconfig.nvim',
+    dependencies = { 'williamboman/mason.nvim' },
+    config = function()
+      require('mason-lspconfig').setup({
+        ensure_installed = { 'pyright', 'bashls', 'fish_lsp' },
+      })
+    end,
+  },
+  {
+    'neovim/nvim-lspconfig',
+    dependencies = { 'williamboman/mason-lspconfig.nvim' },
+    config = function()
+      vim.lsp.enable({ 'pyright', 'glsl_analyzer', 'fish_lsp' })
+
+      -- bashls also handles zsh files since no dedicated Zsh LSP exists
+      vim.lsp.config.bashls = {
+        enabled = true,
+        filetypes = { 'bash', 'sh', 'zsh' },
+        settings = {
+          bashIde = {
+            globPattern = '*@(.sh|.inc|.bash|.command|.zsh)',
+          },
+        },
+      }
+
+      vim.keymap.set('n', 'gd', vim.lsp.buf.definition, {})
+      vim.keymap.set('n', 'K', vim.lsp.buf.hover, {})
+      vim.keymap.set('n', '<leader>rn', vim.lsp.buf.rename, {})
+      vim.keymap.set('n', '<leader>ca', vim.lsp.buf.code_action, {})
+      vim.keymap.set('n', 'gr', vim.lsp.buf.references, {})
+      vim.keymap.set('n', '<leader>e', vim.diagnostic.open_float, { desc = 'Show error' })
+    end,
+
+  },
+  {
     'hrsh7th/nvim-cmp',
-    event = 'CmdlineEnter',
+    event = 'InsertEnter',
     dependencies = {
+      'hrsh7th/cmp-nvim-lsp',
       'hrsh7th/cmp-cmdline',
+      'hrsh7th/cmp-buffer',
+      'hrsh7th/cmp-path',
     },
     config = function()
       local cmp = require('cmp')
+      cmp.setup({
+        snippet = {
+          expand = function(args)
+            vim.snippet.expand(args.body)
+          end,
+        },
+        mapping = cmp.mapping.preset.insert({
+          ['<C-b>'] = cmp.mapping.scroll_docs(-4),
+          ['<C-f>'] = cmp.mapping.scroll_docs(4),
+          ['<C-Space>'] = cmp.mapping.complete(),
+          ['<CR>'] = cmp.mapping.confirm({ select = true }),
+          ['<Tab>'] = cmp.mapping(function(fallback)
+            if cmp.visible() then cmp.select_next_item() else fallback() end
+          end, { 'i', 's' }),
+          ['<S-Tab>'] = cmp.mapping(function(fallback)
+            if cmp.visible() then cmp.select_prev_item() else fallback() end
+          end, { 'i', 's' }),
+        }),
+        sources = cmp.config.sources({
+          { name = 'nvim_lsp' },
+          { name = 'buffer' },
+          { name = 'path' },
+        }),
+      })
       cmp.setup.cmdline(':', {
         mapping = cmp.mapping.preset.cmdline(),
         sources = cmp.config.sources({
@@ -104,5 +170,13 @@ require('lazy').setup({
       })
     end,
   },
+  {
+    'b0o/incline.nvim',
+    event = 'VeryLazy',
+    config = function()
+      require('incline').setup()
+    end,
+  },
 })
 vim.cmd('colorscheme wildcharm')
+vim.cmd('set shiftwidth=4')
