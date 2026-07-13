@@ -29,6 +29,21 @@ command -q zoxide; and zoxide init fish | source
 # alt-c cd. Older fzf (Ubuntu 24.04 ships 0.44) errors on --fish, hence 2>/dev/null.
 command -q fzf; and fzf --fish 2>/dev/null | source
 
+# fzf backend: fd, not fzf's built-in walker. With no FZF_DEFAULT_COMMAND, fzf
+# walks in follow+hidden mode — it CHASES symlinks, so a Wine prefix's
+# `dosdevices/w: -> /mnt` or Steam's Proton `drive_c -> /mnt/data/...` drags it
+# onto the cold-storage platters and re-crawls duplicated DLL trees. fd fixes
+# this structurally: it does NOT follow symlinks, and it honors ~/.config/fd/ignore
+# (the blacklist) plus every git repo's own .gitignore.
+#   --hidden            still descend into dotdirs like ~/.config (fd skips them by default)
+#   -t f / -t d         files for the finder; dirs for alt-c's cd
+#   --strip-cwd-prefix  drop the leading "./" from results
+if command -q fd
+    set -gx FZF_DEFAULT_COMMAND 'fd -t f --hidden --strip-cwd-prefix'
+    set -gx FZF_CTRL_T_COMMAND $FZF_DEFAULT_COMMAND
+    set -gx FZF_ALT_C_COMMAND 'fd -t d --hidden --strip-cwd-prefix'
+end
+
 # ── ENV VARIABLES ───────────────────────────────────────────────────────────
 set -gx GIT_DISCOVERY_ACROSS_FILESYSTEM 1 # github discovery across FS boundaries
 

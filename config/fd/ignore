@@ -1,0 +1,45 @@
+# ~/.config/fd/ignore — fd reads this automatically from $XDG_CONFIG_HOME/fd/ignore.
+# It applies to EVERY `fd` run, and therefore to fzf, which now uses fd as its
+# backend (see the FZF_*_COMMAND exports in config/fish/config.fish).
+#
+# Syntax is .gitignore. Patterns match relative to each search root, so an
+# unanchored "node_modules/" prunes that directory wherever it appears.
+#
+# fd already honors each git repo's OWN .gitignore, so build output a project
+# already ignores (Rust target/, dist/, most .venv) is skipped for free INSIDE
+# repos. This file's job is the junk that lives OUTSIDE any repo — mostly in
+# $HOME itself — plus a few belt-and-suspenders entries.
+
+# ── Wine / Proton prefixes ───────────────────────────────────────────────────
+# A prefix is a fake C: drive: thousands of duplicated DLLs, and — the original
+# reason fzf spun up the platters — it holds symlinks pointing back onto /mnt
+# (e.g. ~/.wine-vam/dosdevices/w: -> /mnt, Steam compatdata drive_c ->
+# /mnt/data/SteamLibrary/...). fd doesn't follow symlinks, so these no longer
+# reach /mnt; but the prefixes are still huge duplicate noise — drop them.
+.wine*/
+drive_c/
+dosdevices/
+compatdata/
+.local/share/wineprefixes/
+.local/share/bottles/
+
+# ── VCS internals (fd shows .git under --hidden; ripgrep hides it, fd doesn't) ─
+.git/
+.svn/
+.hg/
+
+# ── Python venvs & caches (not always covered by a repo's .gitignore) ────────
+.venv/
+venv/
+__pycache__/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# ── Node ─────────────────────────────────────────────────────────────────────
+node_modules/
+
+# ── Home-level caches / trash ────────────────────────────────────────────────
+.cache/
+.local/share/Trash/

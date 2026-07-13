@@ -152,5 +152,6 @@ link_config() {
 
 link_config fish
 link_config nvim
+link_config fd    # global fd ignore -> also fzf's blacklist (fzf is fd-backed)
 
 info "done. log out/in (or 'exec fish') to pick up the new shell."
