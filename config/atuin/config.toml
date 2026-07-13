@@ -1,0 +1,21 @@
+# atuin client config. History itself is recorded to a SQLite db at
+# ~/.local/share/atuin/history.db (NOT here) with cwd/exit-code/duration/host
+# metadata. This file only tunes behavior + points at the self-hosted sync
+# server on ubuntu-server. Sync is end-to-end encrypted: the key lives at
+# ~/.local/share/atuin/key and must be copied to each machine via `atuin login`
+# -- it is never uploaded, so a fresh machine can't decrypt until you paste it.
+
+search_mode = "fuzzy"        # fzf-like matching in the Ctrl-R TUI
+filter_mode = "global"       # default scope; press Ctrl-R again to cycle host/session/dir
+inline_height = 25           # cap the TUI height instead of taking the whole screen
+enter_accept = false         # Enter drops the command on the prompt to inspect; does NOT auto-run
+update_check = false         # no version phone-home
+secrets_filter = true        # don't record commands that look like they carry tokens/keys
+
+## Self-hosted sync target. 192.168.1.101 = ubuntu-server, reachable on the LAN
+## and from the laptop via the Tailscale-advertised User subnet. Port 8888.
+sync_address = "http://192.168.1.101:8888"
+sync_frequency = "5m"
+
+## Never record commands matching these regexes (belt on top of secrets_filter):
+# history_filter = ["^ *op ", "AWS_SECRET", "--password"]

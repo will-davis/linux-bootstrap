@@ -154,6 +154,7 @@ link_config fish
 link_config nvim
 link_config kitty
 link_config fd    # global fd ignore -> also fzf's blacklist (fzf is fd-backed)
+link_config atuin # atuin client config.toml (history behavior + sync target)
 
 # ── KDE Plasma global shortcuts (desktop only, copy — NOT symlink) ───────────
 # Unlike fish/nvim/kitty, this is a single file, and KDE's KConfig saves it

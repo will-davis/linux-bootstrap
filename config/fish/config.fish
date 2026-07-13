@@ -45,6 +45,12 @@ if command -q fd
     set -gx FZF_ALT_C_COMMAND 'fd -t d --hidden --strip-cwd-prefix'
 end
 
+# atuin: SQLite-backed shell history with fuzzy Ctrl-R + cross-machine sync.
+# Sourced AFTER fzf on purpose — last bind wins in fish, so atuin takes Ctrl-R
+# (its history TUI beats fzf's for this) while fzf keeps Ctrl-T / Alt-C untouched.
+# --disable-up-arrow leaves fish's native up-arrow (prefix search) alone.
+command -q atuin; and atuin init fish --disable-up-arrow | source
+
 # ── ENV VARIABLES ───────────────────────────────────────────────────────────
 set -gx GIT_DISCOVERY_ACROSS_FILESYSTEM 1 # github discovery across FS boundaries
 
