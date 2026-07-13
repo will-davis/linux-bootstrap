@@ -1,0 +1,14 @@
+# ~/.config/kitty/genact_grid.session
+layout grid
+
+# Pane 1 (Top Left)
+launch --hold fastfetch 
+
+# Pane 2 (Top Right)
+launch --hold genact
+
+# Pane 3 (Bottom Left)
+launch --hold genact
+
+# Pane 4 (Bottom Right)
+launch --hold genact

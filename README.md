@@ -28,7 +28,8 @@ curl -fsSL https://raw.githubusercontent.com/will-davis/linux-bootstrap/main/boo
 | eza | pacman: distro package. apt: GitHub release binary → `~/.local/bin/eza` (not in Ubuntu 24.04 / Debian bookworm repos). x86_64 + aarch64. The `ls`/`l` abbrs map to it, but only fire when eza is present. |
 | fd shim | Ubuntu packages fd as `fd-find` with binary `fdfind`; a `~/.local/bin/fd` symlink restores the real name |
 | Default shell | `sudo chsh -s (command -v fish)`, skipped if already set |
-| Configs | Symlinks `~/.config/fish` and `~/.config/nvim` into this repo (existing dirs are backed up, not deleted). Edits on any machine can be committed back. |
+| Configs | Symlinks `~/.config/fish`, `~/.config/nvim`, and `~/.config/kitty` into this repo (existing dirs are backed up, not deleted). Edits on any machine can be committed back. |
+| KDE shortcuts | `will-desktop` only: **copies** `config/kde/kglobalshortcutsrc` into `~/.config` (existing file backed up). Not a symlink — see Notes. |
 
 ## kitty TERM strategy
 
@@ -44,7 +45,16 @@ Two layers, both in `config/fish/config.fish`:
 
 - Desktop-only abbrs/functions in `config.fish` are fenced behind
   `if test (hostname) = will-desktop`.
-- `config/fish/fish_variables` is gitignored: it's machine-local runtime state.
+- `config/fish/fish_variables` and `config/kitty/sessions/*.conf` are gitignored:
+  both are machine-local runtime state dragged into the tree by the dir symlink.
+- kitty is config-only — bootstrap doesn't install it (it's already on the
+  desktops; it'd pull a GUI stack onto the headless server). `kitty.conf`
+  `include`s `current-theme.conf` (Campbell) and hardcodes `/usr/bin/fish`.
+- KDE shortcuts are **copied**, not symlinked, because KConfig saves atomically
+  (temp file + rename) and would clobber a single-file symlink on the first GUI
+  edit. So GUI changes don't auto-land in the repo — re-snapshot with
+  `cp ~/.config/kglobalshortcutsrc config/kde/` and commit. Gated to
+  `will-desktop`; broaden the `hostname` test in `bootstrap.sh` for more hosts.
 - nvim plugins are pinned by `config/nvim/lazy-lock.json`; lazy.nvim bootstraps
   itself on first `nvim` launch (needs git + network).
 - fzf's fish keybindings (ctrl-r history, ctrl-t files, alt-c cd) need

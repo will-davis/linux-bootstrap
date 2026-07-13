@@ -180,3 +180,5 @@ require('lazy').setup({
 })
 vim.cmd('colorscheme wildcharm')
 vim.cmd('set shiftwidth=4')
+vim.cmd('set foldmethod=syntax')
+vim.cmd('set foldlevel=0')

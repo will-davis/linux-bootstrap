@@ -1,3 +1,4 @@
+set -g fish_greeting
 # ── distro hooks ────────────────────────────────────────────────────────────
 # CachyOS ships a default config; this file only exists on the desktops.
 # An unguarded `source` of a missing file errors on every shell startup.
@@ -63,11 +64,13 @@ abbr -a pngnumber 'set a 1; for i in *; mv -- "$i" "$a.png"; set a (math $a + 1)
 # ── desktop-only ────────────────────────────────────────────────────────────
 if test (hostname) = will-desktop
     abbr -a comv 'source ~/comfyui-venv/ComfyUI/.venv/bin/activate.fish && uv run ~/comfyui-venv/ComfyUI/main.py --enable-manager'
-    abbr -a ppllama '~/Documents/sys-prompts/llama-server-cpp.fish'
     abbr -a png '~/.local/bin/organize_pngs.sh'
-    abbr -a qc 'cd ~/gemini/claude && claude'
 
     function hey
+        /home/will/.local/bin/hey_llamacpp.py $argv
+    end
+    function heyclaude
         /home/will/.local/bin/hey_claude.py $argv
     end
 end
+

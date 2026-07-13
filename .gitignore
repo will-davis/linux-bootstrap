@@ -2,4 +2,9 @@
 # mode 600, and constantly rewritten — never track it. It lands in the repo
 # tree because ~/.config/fish is a symlink into this repo.
 config/fish/fish_variables
+
+# kitty session snapshots written by save-session.py — machine-local runtime
+# state, same story as fish_variables (the dir symlink drags them into the tree).
+config/kitty/sessions/*.conf
+
 CLAUDE.md

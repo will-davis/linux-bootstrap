@@ -152,6 +152,36 @@ link_config() {
 
 link_config fish
 link_config nvim
+link_config kitty
 link_config fd    # global fd ignore -> also fzf's blacklist (fzf is fd-backed)
+
+# ── KDE Plasma global shortcuts (desktop only, copy — NOT symlink) ───────────
+# Unlike fish/nvim/kitty, this is a single file, and KDE's KConfig saves it
+# atomically (write temp + rename over the target). That rename replaces the
+# inode, which would silently destroy a file symlink the first time a shortcut
+# is edited in System Settings. Directory symlinks survive that (apps write
+# files *inside* the dir); a single-file symlink does not — so we copy instead.
+# Consequence: GUI shortcut changes don't auto-land in the repo. Re-snapshot
+# with:  cp ~/.config/kglobalshortcutsrc config/kde/
+#
+# Gated to will-desktop (matches config.fish's desktop fencing) so this keymap
+# isn't stamped onto other KDE boxes. Broaden the test to add more hosts.
+if [[ "$(hostname)" == will-desktop ]]; then
+    kde_src="$REPO_DIR/config/kde/kglobalshortcutsrc"
+    kde_dest="$HOME/.config/kglobalshortcutsrc"
+    if [[ -f $kde_src ]]; then
+        if [[ -f $kde_dest ]] && cmp -s "$kde_src" "$kde_dest"; then
+            info "KDE shortcuts already current — skipping"
+        else
+            if [[ -e $kde_dest ]]; then
+                bak="$kde_dest.bak.$(date +%Y%m%d-%H%M%S)"
+                warn "existing $kde_dest backed up to $bak"
+                cp "$kde_dest" "$bak"
+            fi
+            cp "$kde_src" "$kde_dest"
+            info "installed KDE shortcuts (relogin or reload Plasma to apply)"
+        fi
+    fi
+fi
 
 info "done. log out/in (or 'exec fish') to pick up the new shell."
