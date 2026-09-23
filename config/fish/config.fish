@@ -1,110 +1,99 @@
 set -g fish_greeting
-# ── distro hooks ────────────────────────────────────────────────────────────
-# CachyOS ships a default config; this file only exists on the desktops.
-# An unguarded `source` of a missing file errors on every shell startup.
 if test -f /usr/share/cachyos-fish-config/cachyos-config.fish
     source /usr/share/cachyos-fish-config/cachyos-config.fish
 end
+fish_add_path -g ~/.local/bin ~/.cargo/bin
 
-# ~/.local/bin holds user-installed tools (and the fd shim on Ubuntu).
-# -g = this session's $PATH only; the universal-variable default pollutes
-# fish_variables, which this repo deliberately doesn't track.
-fish_add_path -g ~/.local/bin
-# ~/.cargo/bin: rustup-managed cargo + `cargo install` binaries (probe-rs, etc.).
-fish_add_path -g ~/.cargo/bin
+# Per-machine overrides stay outside the symlinked tree. This is useful for
+# ATUIN_SYNC_ADDRESS, RAYGLOW_HOST, or optional workstation integrations.
+set -l bootstrap_config ~/.config/linux-bootstrap
+if set -q XDG_CONFIG_HOME
+    set bootstrap_config "$XDG_CONFIG_HOME/linux-bootstrap"
+end
+if test -f "$bootstrap_config/local.fish"
+    source "$bootstrap_config/local.fish"
+end
 
-# ── kitty / TERM handling ───────────────────────────────────────────────────
-# kitty sets TERM=xterm-kitty. If this host's terminfo db has no entry for it,
-# ncurses apps (btop, nvim) misbehave. The real fix is `kitten ssh`, which
-# copies the terminfo over on first connect; this is the remote-side safety net.
+# Preserve kitty's SSH terminfo transport and remote-side safety net.
 if test "$TERM" = xterm-kitty; and not infocmp xterm-kitty >/dev/null 2>&1
     set -gx TERM xterm-256color
 end
-
-# On machines that have kitty, make plain `ssh` carry terminfo along.
 command -q kitten; and alias ssh='kitten ssh'
-
-# yazi shim to maintain path on exit
-# This has to go BEFORE zoxide!!
-function y
-	set tmp (mktemp -t "yazi-cwd.XXXXXX")
-	command yazi $argv --cwd-file="$tmp"
-	if set cwd (command cat -- "$tmp"); and [ -n "$cwd" ]; and [ "$cwd" != "$PWD" ]
-		builtin cd -- "$cwd"
-	end
-	rm -f -- "$tmp"
-end
-
-# ── tool init ───────────────────────────────────────────────────────────────
-command -q zoxide; and zoxide init fish | source
-# fzf >= 0.48 grew a native fish integration: ctrl-r history, ctrl-t files,
-# alt-c cd. Older fzf (Ubuntu 24.04 ships 0.44) errors on --fish, hence 2>/dev/null.
-command -q fzf; and fzf --fish 2>/dev/null | source
-
-# fzf backend: fd, not fzf's built-in walker. With no FZF_DEFAULT_COMMAND, fzf
-# walks in follow+hidden mode — it CHASES symlinks, so a Wine prefix's
-# `dosdevices/w: -> /mnt` or Steam's Proton `drive_c -> /mnt/data/...` drags it
-# onto the cold-storage platters and re-crawls duplicated DLL trees. fd fixes
-# this structurally: it does NOT follow symlinks, and it honors ~/.config/fd/ignore
-# (the blacklist) plus every git repo's own .gitignore.
-#   --hidden            still descend into dotdirs like ~/.config (fd skips them by default)
-#   -t f / -t d         files for the finder; dirs for alt-c's cd
-#   --strip-cwd-prefix  drop the leading "./" from results
-if command -q fd
-    set -gx FZF_DEFAULT_COMMAND 'fd -t f --hidden --strip-cwd-prefix --no-ignore --exclude .git'
-    set -gx FZF_CTRL_T_COMMAND $FZF_DEFAULT_COMMAND
-    set -gx FZF_ALT_C_COMMAND 'fd -t d --hidden --strip-cwd-prefix'
-set -gx FZF_CTRL_T_COMMAND "$FZF_DEFAULT_COMMAND"
-end
-
-# atuin: SQLite-backed shell history with fuzzy Ctrl-R + cross-machine sync.
-# Sourced AFTER fzf on purpose — last bind wins in fish, so atuin takes Ctrl-R
-# (its history TUI beats fzf's for this) while fzf keeps Ctrl-T / Alt-C untouched.
-# --disable-up-arrow leaves fish's native up-arrow (prefix search) alone.
-command -q atuin; and atuin init fish --disable-up-arrow | source
-
-# ── ENV VARIABLES ───────────────────────────────────────────────────────────
-set -gx GIT_DISCOVERY_ACROSS_FILESYSTEM 1 # github discovery across FS boundaries
-
-# ── OTHER --------───────────────────────────────────────────────────────────
-
 set -gx EDITOR nvim
 set -gx VISUAL nvim
+set -gx GIT_DISCOVERY_ACROSS_FILESYSTEM 1
+
+# Hidden and Git-ignored files are useful; .fdignore and the global junk list
+# still apply. fd does NOT follow symlinks into Wine prefixes/mounted storage.
+if command -q fd
+    set -gx FZF_DEFAULT_COMMAND 'fd -t f --hidden --no-ignore-vcs --exclude .git'
+    set -gx FZF_CTRL_T_COMMAND $FZF_DEFAULT_COMMAND
+    # Alt+C is the directory picker: visible directories, normal ignore rules.
+    set -gx FZF_ALT_C_COMMAND 'fd -t d --exclude .git'
+end
 
 if status is-interactive
     fish_vi_key_bindings
+    command -q zoxide; and zoxide init fish | source
+    # Prefer the packaged integration: also works with Ubuntu's pre-0.48 fzf.
+    if functions -q fzf_key_bindings
+        fzf_key_bindings
+    else if test -f /usr/share/doc/fzf/examples/key-bindings.fish
+        source /usr/share/doc/fzf/examples/key-bindings.fish
+    else if test -f /usr/share/fzf/key-bindings.fish
+        source /usr/share/fzf/key-bindings.fish
+    else if command -q fzf
+        fzf --fish 2>/dev/null | source
+    end
+    # Last binding wins: Atuin owns Ctrl+R; native up-arrow remains available.
+    command -q atuin; and atuin init fish --disable-up-arrow | source
 end
 
-# Hotwire muscle-memory `ls` -> eza. Guarded: on a box without eza (fresh, or
-# unsupported arch) these don't fire and `ls` stays real coreutils ls instead
-# of erroring "command not found: eza". abbrs are interactive + command-position
-# only, so scripts, functions, and `sudo ls` still get coreutils ls regardless.
+# Yazi changes the parent shell's cwd through a temporary file.
+function y
+    set -l tmp (mktemp -t yazi-cwd.XXXXXX)
+    command yazi $argv --cwd-file="$tmp"
+    set -l result $status
+    set -l cwd (cat -- "$tmp")
+    if test -n "$cwd"; and test "$cwd" != "$PWD"
+        builtin cd -- "$cwd"
+    end
+    rm -f -- "$tmp"
+    return $result
+end
+command -q yazi; and alias yazi='y'
 if command -q eza
-    abbr -a ls 'eza'
-    abbr -a l 'eza'
+    abbr -a ls eza
+    abbr -a l eza
 end
-
-alias yazi 'y'
 abbr -a pngnumber 'set a 1; for i in *; mv -- "$i" "$a.png"; set a (math $a + 1); end'
 
-
-# ── desktop-only ────────────────────────────────────────────────────────────
-if test (hostname) = will-desktop
+# Project tools follow their dependencies, not the machine's hostname.
+if test -f ~/comfyui-venv/ComfyUI/.venv/bin/activate.fish; and command -q uv
     abbr -a comv 'source ~/comfyui-venv/ComfyUI/.venv/bin/activate.fish && uv run ~/comfyui-venv/ComfyUI/main.py --enable-manager'
+end
+if test -x ~/.local/bin/organize_pngs.sh
     abbr -a png '~/.local/bin/organize_pngs.sh'
+end
+if test -f ~/Projects/rayglow/tools/rayglow_ctl.py; and command -q python3
     abbr -a rgc 'python3 ~/Projects/rayglow/tools/rayglow_ctl.py'
+end
+if test -f ~/Projects/rayglow/sender/sender.py; and command -q uv
     abbr -a soundbr 'cd ~/Projects/rayglow/sender/ && uv run sender.py'
-    abbr -a rg-agent 'cd ~/Projects/rayglow-agent/ && npm run tui -- --preview-fps 120' 
+end
+if test -f ~/Projects/rayglow-agent/package.json; and command -q npm
+    abbr -a rg-agent 'cd ~/Projects/rayglow-agent/ && npm run tui -- --preview-fps 120'
+end
+if test -d ~/Projects/rayglow-terminal-control; and command -q uv
     abbr -a rg-tui 'cd ~/Projects/rayglow-terminal-control/ && uv run rayglow-tui'
+end
+if test -x ~/.local/bin/hey_llamacpp.py
     function hey
-        /home/will/.local/bin/hey_llamacpp.py $argv
-    end
-    function heyclaude
-        /home/will/.local/bin/hey_claude.py $argv
+        ~/.local/bin/hey_llamacpp.py $argv
     end
 end
-
-
-
-# Added by Antigravity CLI installer
-set -gx PATH "/home/will/.local/bin" $PATH
+if test -x ~/.local/bin/hey_claude.py
+    function heyclaude
+        ~/.local/bin/hey_claude.py $argv
+    end
+end

@@ -1,6 +1,6 @@
 -- rayglow.nvim — push GLSL edits straight to the running RayGLow renderer.
 --
--- On :w of any *.glsl this ships the buffer's shader to the Pi over the control
+-- On :w of a *.glsl inside shader_root this ships the shader over the control
 -- plane (TCP 5006) — bypassing mutagen, so the wall updates in <100ms — and
 -- surfaces the renderer's GLSL compile errors right here via vim.notify.
 --
@@ -9,8 +9,8 @@
 --   <leader>m s  status      <leader>m <space>  play/pause    <leader>m u  push
 --   <leader>m x  → scale …   (1/2/3/4 pick a supersample, a = auto)
 --
--- Wired from init.lua via require('rayglow').setup{...}. Canonical copy of this
--- snippet: the repo's tools/nvim-rayglow.lua.
+-- Wired from init.lua when the helper and an explicit renderer host are present.
+-- Adapted from the RayGLow project's tools/nvim-rayglow.lua.
 
 local M = {}
 
@@ -20,6 +20,7 @@ local cfg = {
   host = nil,            -- Pi host; nil => client uses $RAYGLOW_HOST or 127.0.0.1
   prefix = '<leader>m',  -- root of the control maps
   push_on_save = true,   -- BufWritePost *.glsl autocmd
+  shader_root = nil,     -- required for automatic pushes; manual push remains available
   maps = true,           -- register the <prefix>… maps
   notify_ok = true,      -- toast on a successful push / control cmd
 }
@@ -82,10 +83,16 @@ function M.setup(opts)
     function(a) M.scale(a.args) end,
     { nargs = 1, desc = 'set RayGLow supersample scale (1..8 or auto)' })
 
-  if cfg.push_on_save then
+  if cfg.push_on_save and cfg.shader_root then
     vim.api.nvim_create_autocmd('BufWritePost', {
       pattern = '*.glsl',
-      callback = function(a) M.push(a.file) end,
+      callback = function(a)
+        local root = vim.uv.fs_realpath(cfg.shader_root)
+        local file = vim.uv.fs_realpath(a.file)
+        if root and file and file:sub(1, #root + 1) == root .. '/' then
+          M.push(file)
+        end
+      end,
       desc = 'push GLSL to the RayGLow wall',
     })
   end

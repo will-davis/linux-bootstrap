@@ -1,188 +1,77 @@
 #!/usr/bin/env bash
-# linux-bootstrap — make a fresh box comfortable.
-#
-# Idempotent: safe to re-run any time (after a `git pull`, say).
-# Supports: Arch/CachyOS (pacman) and Ubuntu/Debian/Raspberry Pi OS (apt).
-#
-# Usage:
-#   ./bootstrap.sh                      # from a clone
-#   curl -fsSL <raw-url> | bash        # from nothing (installs git, clones itself)
+# Normal-user entrypoint, also works through curl | bash -s -- [options].
 set -euo pipefail
-
-REPO_URL="https://github.com/will-davis/linux-bootstrap.git"
-CLONE_DIR="$HOME/linux-bootstrap"
-NVIM_MIN="0.10"   # lazy.nvim ecosystem effectively requires >= 0.10 now
-
-info() { printf '\033[1;32m==>\033[0m %s\n' "$*"; }
-warn() { printf '\033[1;33m==> WARNING:\033[0m %s\n' "$*"; }
-
-# ── locate ourselves / self-clone ───────────────────────────────────────────
-# When piped from curl, BASH_SOURCE is unset (we're reading stdin), so there's
-# no repo on disk yet: install git, clone, and re-exec from the clone.
-if [[ -f "${BASH_SOURCE[0]:-}" ]]; then
-    REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-else
-    info "running from a pipe — cloning to $CLONE_DIR"
+usage() {
+    cat <<'USAGE'
+Usage: bootstrap.sh [--profile auto|kde|headless] [--nvim auto|full|minimal]
+                    [--config-only] [--dry-run]
+  auto: KDE when Plasma is installed (including over SSH), headless otherwise.
+  Raspberry Pi defaults to minimal Neovim; other 64-bit machines use full.
+  --config-only: user configuration only; no packages, services, or shell change.
+  --dry-run: show selections without changes or downloads (use from a clone).
+USAGE
+}
+PROFILE=auto NVIM_MODE=auto CONFIG_ONLY=0 DRY_RUN=0
+ORIGINAL_ARGS=("$@")
+while (($#)); do
+    case "$1" in
+        --profile|--nvim)
+            (($# >= 2)) || { usage >&2; exit 2; }
+            if [[ $1 == --profile ]]; then PROFILE=$2; else NVIM_MODE=$2; fi
+            shift 2 ;;
+        --config-only) CONFIG_ONLY=1; shift ;;
+        --dry-run) DRY_RUN=1; shift ;;
+        -h|--help) usage; exit 0 ;;
+        *) usage >&2; exit 2 ;;
+    esac
+ done
+[[ $PROFILE =~ ^(auto|kde|headless)$ && $NVIM_MODE =~ ^(auto|full|minimal)$ ]] || { usage >&2; exit 2; }
+if [[ ! -f ${BASH_SOURCE[0]:-} ]]; then
+    ((DRY_RUN == 0)) || { echo 'Use dry-run from a clone to avoid cloning.'; exit 0; }
+    [[ $EUID != 0 ]] || { echo 'Run as your normal user, not root.' >&2; exit 1; }
     if ! command -v git >/dev/null; then
-        if command -v pacman >/dev/null; then sudo pacman -S --needed --noconfirm git
-        else sudo apt-get update -qq && sudo apt-get install -y git; fi
+        if command -v pacman >/dev/null; then sudo pacman -Syu --needed --noconfirm git
+        elif command -v apt-get >/dev/null; then
+            sudo apt-get update
+            sudo apt-get install -y git ca-certificates
+        else echo 'No supported package manager (pacman/apt).' >&2; exit 1; fi
     fi
-    if [[ -d "$CLONE_DIR/.git" ]]; then
-        git -C "$CLONE_DIR" pull --ff-only
-    else
-        git clone "$REPO_URL" "$CLONE_DIR"
-    fi
-    exec bash "$CLONE_DIR/bootstrap.sh"
+    clone_dir="$HOME/linux-bootstrap"
+    if [[ -d $clone_dir/.git ]]; then git -C "$clone_dir" pull --ff-only
+    else git clone https://github.com/will-davis/linux-bootstrap.git "$clone_dir"; fi
+    exec bash "$clone_dir/bootstrap.sh" "${ORIGINAL_ARGS[@]}"
 fi
-
-# ── packages ────────────────────────────────────────────────────────────────
-if command -v pacman >/dev/null; then
-    PM=pacman
-    # -Syu, not -Sy: installing from a stale db after a partial refresh
-    # ("partial upgrade") is how Arch boxes break. A fresh/remote Arch box
-    # should be fully synced before adding packages anyway.
-    info "pacman: syncing and installing packages"
-    sudo pacman -Syu --needed --noconfirm \
-        fish fzf zoxide fd ripgrep btop neovim eza git curl
-elif command -v apt-get >/dev/null; then
-    PM=apt
-    info "apt: updating and installing packages"
-    sudo apt-get update -qq
-    # fd is packaged as fd-find (binary: fdfind) — Debian had a prior `fd` claim.
-    # neovim deliberately NOT from apt: 24.04 ships 0.9.x, too old for lazy.nvim.
-    sudo apt-get install -y \
-        fish fzf zoxide fd-find ripgrep btop git curl ca-certificates
-else
-    echo "No supported package manager (pacman/apt) found." >&2
-    exit 1
+REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/bootstrap.sh
+source "$REPO_DIR/lib/bootstrap.sh"
+detect_platform
+info "profile=$PROFILE; neovim=$NVIM_MODE; packages=$PM; architecture=$ARCH; raspberry-pi=$IS_PI"
+if ((DRY_RUN)); then describe_plan; exit 0; fi
+[[ $EUID != 0 ]] || die 'Run as your normal user, not root.'
+if ((!CONFIG_ONLY)); then
+    sudo -v
+    install_core
+    if [[ $PROFILE == kde ]]; then install_desktop; fi
 fi
-
-# ── neovim (apt systems: GitHub release tarball) ────────────────────────────
-nvim_recent_enough() {
-    command -v nvim >/dev/null || return 1
-    local v
-    v="$(nvim --version | head -1 | sed 's/^NVIM v//')"
-    # sort -V: if NVIM_MIN sorts first (or equal), installed version is >= min
-    [[ "$(printf '%s\n' "$NVIM_MIN" "$v" | sort -V | head -1)" == "$NVIM_MIN" ]]
-}
-
-if [[ $PM == apt ]]; then
-    if nvim_recent_enough; then
-        info "nvim $(nvim --version | head -1) already present — skipping"
-    else
-        case "$(uname -m)" in
-            x86_64)  NVIM_ARCH=x86_64 ;;
-            aarch64) NVIM_ARCH=arm64 ;;
-            *)       NVIM_ARCH="" ;;
-        esac
-        if [[ -n $NVIM_ARCH ]]; then
-            info "installing neovim (latest release tarball, $NVIM_ARCH) to /opt"
-            # Release tarballs are self-contained (bin/ + share/runtime).
-            # /opt/<dir> + a symlink on PATH keeps removal trivial.
-            sudo rm -rf "/opt/nvim-linux-$NVIM_ARCH"
-            curl -fsSL "https://github.com/neovim/neovim/releases/latest/download/nvim-linux-${NVIM_ARCH}.tar.gz" \
-                | sudo tar -xz -C /opt
-            sudo ln -sf "/opt/nvim-linux-$NVIM_ARCH/bin/nvim" /usr/local/bin/nvim
-        else
-            warn "unsupported arch $(uname -m) — falling back to apt neovim (may be too old for lazy.nvim)"
-            sudo apt-get install -y neovim
-        fi
-    fi
-
-    # fdfind -> fd shim (config.fish puts ~/.local/bin on PATH)
-    mkdir -p "$HOME/.local/bin"
-    ln -sf "$(command -v fdfind)" "$HOME/.local/bin/fd"
-
-    # eza: not in Ubuntu 24.04 / Debian bookworm repos, so grab the release
-    # binary (a single self-contained file) like we do neovim. ~/.local/bin
-    # is already on PATH via config.fish, so no sudo and trivial removal.
-    if command -v eza >/dev/null; then
-        info "eza already present — skipping"
-    else
-        case "$(uname -m)" in
-            x86_64)  EZA_ARCH=x86_64 ;;
-            aarch64) EZA_ARCH=aarch64 ;;
-            *)       EZA_ARCH="" ;;
-        esac
-        if [[ -n $EZA_ARCH ]]; then
-            info "installing eza (latest release binary, $EZA_ARCH) to ~/.local/bin"
-            # Tarball holds a single ./eza; extract just that into ~/.local/bin.
-            curl -fsSL "https://github.com/eza-community/eza/releases/latest/download/eza_${EZA_ARCH}-unknown-linux-gnu.tar.gz" \
-                | tar -xz -C "$HOME/.local/bin"
-            chmod +x "$HOME/.local/bin/eza"
-        else
-            warn "unsupported arch $(uname -m) — skipping eza; the ls/l abbrs stay on coreutils ls"
-        fi
+export PATH="$HOME/.local/bin:$PATH"
+mkdir -p "$CONFIG_HOME/linux-bootstrap"
+printf '%s\n' "$NVIM_MODE" > "$CONFIG_HOME/linux-bootstrap/nvim-mode"
+for name in fish nvim fd atuin; do link_config "$name"; done
+if [[ $PROFILE == kde ]]; then
+    link_config kitty
+    python3 "$REPO_DIR/scripts/desktop.py" apply --repo "$REPO_DIR"
+    if ((!CONFIG_ONLY)); then sudo systemctl enable --now input-remapper; fi
+    # The packaged login autostart loads user presets. Don't interrupt a held
+    # key by stopping/reloading a running injector in the middle of bootstrap.
+fi
+if ((!CONFIG_ONLY)); then
+    fish_path="$(command -v fish)"
+    grep -Fxq "$fish_path" /etc/shells || printf '%s\n' "$fish_path" | sudo tee -a /etc/shells >/dev/null
+    login_user="$(id -un)"
+    if [[ $(getent passwd "$login_user" | cut -d: -f7) != "$fish_path" ]]; then
+        sudo chsh -s "$fish_path" "$login_user"
     fi
 fi
-
-# ── default shell ───────────────────────────────────────────────────────────
-FISH_PATH="$(command -v fish)"
-# chsh refuses shells not whitelisted in /etc/shells (packages add this, but belt+braces)
-grep -qx "$FISH_PATH" /etc/shells || echo "$FISH_PATH" | sudo tee -a /etc/shells >/dev/null
-
-CURRENT_SHELL="$(getent passwd "$USER" | cut -d: -f7)"
-if [[ $CURRENT_SHELL != "$FISH_PATH" ]]; then
-    info "setting default shell to fish"
-    # sudo chsh: root may change any user's shell without the password
-    # re-prompt plain `chsh` does — and sudo creds are already cached.
-    sudo chsh -s "$FISH_PATH" "$USER"
-else
-    info "default shell already fish — skipping"
-fi
-
-# ── configs (symlink, don't copy) ───────────────────────────────────────────
-# Symlinks mean edits made on this machine land in the repo working tree,
-# so they can be committed and pushed back instead of drifting per-machine.
-link_config() {
-    local name=$1
-    local target="$REPO_DIR/config/$name" dest="$HOME/.config/$name"
-    mkdir -p "$HOME/.config"
-    if [[ -L $dest ]]; then
-        [[ "$(readlink -f "$dest")" == "$(readlink -f "$target")" ]] && return
-        rm "$dest"
-    elif [[ -e $dest ]]; then
-        local bak="$dest.bak.$(date +%Y%m%d-%H%M%S)"
-        warn "existing $dest moved to $bak"
-        mv "$dest" "$bak"
-    fi
-    ln -s "$target" "$dest"
-    info "linked ~/.config/$name -> $target"
-}
-
-link_config fish
-link_config nvim
-link_config kitty
-link_config fd    # global fd ignore -> also fzf's blacklist (fzf is fd-backed)
-link_config atuin # atuin client config.toml (history behavior + sync target)
-
-# ── KDE Plasma global shortcuts (desktop only, copy — NOT symlink) ───────────
-# Unlike fish/nvim/kitty, this is a single file, and KDE's KConfig saves it
-# atomically (write temp + rename over the target). That rename replaces the
-# inode, which would silently destroy a file symlink the first time a shortcut
-# is edited in System Settings. Directory symlinks survive that (apps write
-# files *inside* the dir); a single-file symlink does not — so we copy instead.
-# Consequence: GUI shortcut changes don't auto-land in the repo. Re-snapshot
-# with:  cp ~/.config/kglobalshortcutsrc config/kde/
-#
-# Gated to will-desktop (matches config.fish's desktop fencing) so this keymap
-# isn't stamped onto other KDE boxes. Broaden the test to add more hosts.
-if [[ "$(hostname)" == will-desktop ]]; then
-    kde_src="$REPO_DIR/config/kde/kglobalshortcutsrc"
-    kde_dest="$HOME/.config/kglobalshortcutsrc"
-    if [[ -f $kde_src ]]; then
-        if [[ -f $kde_dest ]] && cmp -s "$kde_src" "$kde_dest"; then
-            info "KDE shortcuts already current — skipping"
-        else
-            if [[ -e $kde_dest ]]; then
-                bak="$kde_dest.bak.$(date +%Y%m%d-%H%M%S)"
-                warn "existing $kde_dest backed up to $bak"
-                cp "$kde_dest" "$bak"
-            fi
-            cp "$kde_src" "$kde_dest"
-            info "installed KDE shortcuts (relogin or reload Plasma to apply)"
-        fi
-    fi
-fi
-
-info "done. log out/in (or 'exec fish') to pick up the new shell."
+info 'Done. Start a new Fish shell; log out/in to load changed KDE shortcuts and remaps.'
+if [[ $NVIM_MODE == full ]]; then info 'First nvim launch installs locked plugins; :Lazy restore reproduces the lockfile.'; fi
+info 'Atuin works locally immediately. Sync login/key import remains a manual step.'

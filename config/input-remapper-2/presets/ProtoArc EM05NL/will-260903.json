@@ -1,0 +1,58 @@
+[
+    {
+        "input_combination": [
+            {
+                "type": 1,
+                "code": 276,
+                "origin_hash": "e6cf7d117ac0374fa63a593269fab319"
+            }
+        ],
+        "target_uinput": "keyboard",
+        "output_symbol": "KEY_ENTER",
+        "mapping_type": "key_macro"
+    },
+    {
+        "input_combination": [
+            {
+                "type": 1,
+                "code": 272,
+                "origin_hash": "e6cf7d117ac0374fa63a593269fab319"
+            }
+        ],
+        "target_uinput": "keyboard + mouse",
+        "output_symbol": "set(L_HELD, 1).hold_keys(BTN_LEFT).set(L_HELD, 0).if_eq($META_DRAG, 1, key_up(KEY_LEFTMETA).set(META_DRAG, 0))",
+        "name": "left click to meta macro",
+        "mapping_type": "key_macro",
+        "release_combination_keys": false
+    },
+    {
+        "input_combination": [
+            {
+                "type": 1,
+                "code": 273,
+                "origin_hash": "e6cf7d117ac0374fa63a593269fab319"
+            }
+        ],
+        "target_uinput": "keyboard + mouse",
+        "output_symbol": "if_eq($L_HELD, 1, key_up(BTN_LEFT).key_down(KEY_LEFTMETA).key_down(BTN_LEFT).set(META_DRAG, 1), hold_keys(BTN_RIGHT))",
+        "name": "right click to meta macro",
+        "mapping_type": "key_macro"
+    },
+    {
+        "input_combination": [
+            {
+                "type": 1,
+                "code": 275,
+                "origin_hash": "e6cf7d117ac0374fa63a593269fab319"
+            },
+            {
+                "type": 1,
+                "code": 273,
+                "origin_hash": "e6cf7d117ac0374fa63a593269fab319"
+            }
+        ],
+        "target_uinput": "keyboard",
+        "output_symbol": "KEY_LEFTMETA + KEY_W",
+        "mapping_type": "key_macro"
+    }
+]

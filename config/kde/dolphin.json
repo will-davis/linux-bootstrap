@@ -1,0 +1,42 @@
+{
+  "": {
+    "MenuBar": "Disabled"
+  },
+  "[CompactMode]": {
+    "PreviewSize": "32"
+  },
+  "[ContextMenu]": {
+    "ShowAddToPlaces": "false",
+    "ShowCopyToOtherSplitView": "false",
+    "ShowDuplicateHere": "false",
+    "ShowMoveToOtherSplitView": "false",
+    "ShowOpenInNewTab": "false",
+    "ShowOpenInNewWindow": "false",
+    "ShowOpenInSplitView": "false",
+    "ShowOpenTerminal": "false",
+    "ShowViewMode": "false"
+  },
+  "[DetailsMode]": {
+    "LeftPadding": "0",
+    "PreviewSize": "22",
+    "RightPadding": "268"
+  },
+  "[IconsMode]": {
+    "IconSize": "240",
+    "PreviewSize": "256",
+    "TextWidthIndex": "0"
+  },
+  "[KFileDialog Settings]": {
+    "Places Icons Auto-resize": "false",
+    "Places Icons Static Size": "16"
+  },
+  "[PlacesPanel]": {
+    "IconSize": "16"
+  },
+  "[PreviewSettings]": {
+    "Plugins": "audiothumbnail,glycin-heif,directorythumbnail,fontthumbnail,imagethumbnail,glycin-image-rs,jpegthumbnail,glycin-jxl,windowsimagethumbnail,rawthumbnail,glycin-svg,svgthumbnail,ffmpegthumbs"
+  },
+  "[UiSettings]": {
+    "ColorScheme": "BreezeDark"
+  }
+}

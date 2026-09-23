@@ -3,8 +3,15 @@
 # tree because ~/.config/fish is a symlink into this repo.
 config/fish/fish_variables
 
-# kitty session snapshots written by save-session.py — machine-local runtime
-# state, same story as fish_variables (the dir symlink drags them into the tree).
+# Local kitty session snapshots remain machine-local.
 config/kitty/sessions/*.conf
+
+# The shared default selects one trackball preset. Other devices and autoload
+# state are preserved locally when the input-remapper directory is linked.
+config/input-remapper-2/config.json*
+config/input-remapper-2/presets/**
+!config/input-remapper-2/presets/ProtoArc EM05NL/
+!config/input-remapper-2/presets/ProtoArc EM05NL/will-260903.json
+__pycache__/
 
 CLAUDE.md

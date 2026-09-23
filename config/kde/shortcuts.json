@@ -1,0 +1,27 @@
+{
+  "[kwin]": {
+    "Edit Tiles": "none,Meta+T,Toggle Tiles Editor",
+    "Expose": "Ctrl+F9,Ctrl+F9\\tMeta+F9,Toggle Present Windows (Current desktop)",
+    "ExposeAll": "Launch (C)\\tCtrl+F10,Launch (C)\\tCtrl+F10\\tMeta+F10,Toggle Present Windows (All desktops)",
+    "ExposeClass": "Ctrl+F7,Ctrl+F7\\tMeta+F7,Toggle Present Windows (Window class)",
+    "Show Desktop": "Meta+D\\tMeta+M,Meta+D,Peek at Desktop",
+    "Switch to Desktop 1": "Ctrl+F1,Ctrl+F1\\tMeta+F1,Switch to Desktop 1",
+    "Switch to Desktop 2": "Ctrl+F2,Ctrl+F2\\tMeta+F2,Switch to Desktop 2",
+    "Switch to Desktop 3": "Ctrl+F3,Ctrl+F3\\tMeta+F3,Switch to Desktop 3",
+    "Switch to Desktop 4": "Ctrl+F4,Ctrl+F4\\tMeta+F4,Switch to Desktop 4",
+    "Window Maximize": "Meta+Up,Meta+PgUp,Maximize Window",
+    "Window Minimize": "Meta+Down,Meta+PgDown,Minimize Window",
+    "Window Quick Tile Bottom": "none,Meta+Down,Quick Tile Window to the Bottom",
+    "Window Quick Tile Top": "none,Meta+Up,Quick Tile Window to the Top",
+    "Window to Screen 0": "Meta+1,none,Move Window to Screen 0",
+    "Window to Screen 1": "Meta+2,none,Move Window to Screen 1",
+    "view_zoom_in": "Meta+Space\\tMeta++\\tMeta+=,Meta++\\tMeta+=,Zoom In",
+    "view_zoom_out": "Meta+-\\tMeta+Ctrl+Space,Meta+-,Zoom Out"
+  },
+  "[plasmashell]": {
+    "activate task manager entry 1": "none,Meta+1,Activate Task Manager Entry 1",
+    "activate task manager entry 2": "none,Meta+2,Activate Task Manager Entry 2",
+    "next activity": "Meta+A,none,Walk through activities",
+    "previous activity": "Meta+Shift+A,none,Walk through activities (Reverse)"
+  }
+}

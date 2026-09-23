@@ -1,5 +1,6 @@
 # ~/.config/fish/functions/display-hdr.fish
 function display-hdr --description 'S90D 4K@149.88 HDR+WCG + Denon 4K29.88, 200% scale'
+    __bootstrap_display; or return 1
     kscreen-doctor \
         output.HDMI-A-1.mode.9 \
         output.HDMI-A-1.scale.2 \

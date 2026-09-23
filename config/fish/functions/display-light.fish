@@ -1,5 +1,6 @@
 # ~/.config/fish/functions/display-light.fish
 function display-light --description 'Both displays 1080p60, 100% scale, no HDR/WCG (VRAM-light)'
+    __bootstrap_display; or return 1
     kscreen-doctor \
         output.HDMI-A-1.mode.22 \
         output.HDMI-A-1.scale.1 \

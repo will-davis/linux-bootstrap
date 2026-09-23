@@ -1,3 +1,16 @@
+-- Minimal mode is machine-local; the same config directory can travel to Pi
+-- OS and old distro Neovim without downloading any plugins.
+local mode_file = (vim.env.XDG_CONFIG_HOME or (vim.env.HOME .. '/.config'))
+  .. '/linux-bootstrap/nvim-mode'
+local mode = vim.env.LINUX_BOOTSTRAP_NVIM
+if not mode and vim.fn.filereadable(mode_file) == 1 then
+  mode = vim.fn.readfile(mode_file)[1]
+end
+if mode == 'minimal' or vim.fn.has('nvim-0.11.3') == 0 then
+  dofile(vim.fn.stdpath('config') .. '/minimal.lua')
+  return
+end
+
 -- Bootstrap lazy.nvim
 local lazypath = vim.fn.stdpath('data') .. '/lazy/lazy.nvim'
 if not (vim.uv or vim.loop).fs_stat(lazypath) then
@@ -55,7 +68,7 @@ vim.filetype.add({
 -- in-band over the existing tty, and kitty writes it to the desktop clipboard.
 -- No X-forwarding, no clipboard daemon. Guarded so local machines keep their
 -- native wl-clipboard provider (which, unlike OSC 52, also reads reliably).
-if vim.env.SSH_TTY and vim.fn.has('nvim-0.10') == 1 then
+if (vim.env.SSH_TTY or vim.env.SSH_CONNECTION) and vim.fn.has('nvim-0.10') == 1 then
   local osc52 = require('vim.ui.clipboard.osc52')
   vim.g.clipboard = {
     name = 'OSC 52',
@@ -81,7 +94,6 @@ vim.api.nvim_create_autocmd({ 'FocusGained', 'BufEnter', 'CursorHold' }, {
 
 -- Plugins
 require('lazy').setup({
-  rocks = { enabled = false },
   {
     'folke/which-key.nvim',
     event = 'VeryLazy',
@@ -144,7 +156,7 @@ require('lazy').setup({
     dependencies = { 'williamboman/mason.nvim' },
     config = function()
       require('mason-lspconfig').setup({
-        ensure_installed = { 'pyright', 'bashls', 'fish_lsp', 'lua_ls' },
+        ensure_installed = { 'pyright', 'bashls', 'fish_lsp', 'lua_ls', 'glsl_analyzer' },
       })
     end,
   },
@@ -293,8 +305,9 @@ require('lazy').setup({
       require('incline').setup()
     end,
   },
- {
+  {
     'yetone/avante.nvim',
+    enabled = vim.env.LINUX_BOOTSTRAP_AI ~= '0',
     event = 'VeryLazy',
     version = false,
     build = 'make',
@@ -304,8 +317,8 @@ require('lazy').setup({
         llamacpp = {
 	  __inherited_from = 'openai',
           api_key_name = '',
-          endpoint = 'http://127.0.0.1:8080/v1',
-          model = 'Nvidia-Qwen3.6-27B-NVFP4.gguf',
+          endpoint = vim.env.LLAMA_CPP_ENDPOINT or 'http://127.0.0.1:8080/v1',
+          model = vim.env.LLAMA_CPP_MODEL or 'Nvidia-Qwen3.6-27B-NVFP4.gguf',
         },
       },
     },
@@ -330,18 +343,12 @@ require('lazy').setup({
     event = 'BufReadPost',
     opts = {},
   },
-})
+}, { rocks = { enabled = false } })
 vim.cmd('colorscheme wildcharm')
 -- Override bufferline active-tab highlights: give the selected tab/buffer a dark
 -- gray background instead of the colourscheme's pure black.
-local c = { bg = '#303030' }  -- adjust to taste; anything in #222–#444 range works
-for group, guifg in pairs({
-  BufferLineTabSelected            = nil,
-  BufferLineBufferSelected         = nil,
-  BufferLineCloseButtonSelected    = nil,
-  BufferLineSeparatorSelected      = c.bg,   -- blend the separator into the bg
-}) do
-  vim.api.nvim_set_hl(0, group, { bg = c.bg, fg = guifg })
+for _, group in ipairs({ 'BufferLineTabSelected', 'BufferLineBufferSelected', 'BufferLineCloseButtonSelected' }) do
+  vim.api.nvim_set_hl(0, group, { bg = '#303030' })
 end
 
 vim.opt.shiftwidth = 4
@@ -410,11 +417,13 @@ vim.keymap.set('n', '[b', '<cmd>BufferLineCyclePrev<cr>', { desc = 'Prev buffer'
 vim.keymap.set('n', '<leader>bp', '<cmd>BufferLinePick<cr>', { desc = 'Pick buffer' })
 vim.keymap.set('n', '<leader>bd', '<cmd>bdelete<cr>', { desc = 'Close buffer' })
 
--- RayGLow: push GLSL edits straight to the running renderer on :w (bypasses
--- mutagen's ~5-20s sync). Controls under <leader>m (n/p/r/s/<space>/u, and
--- x→scale). host honours $RAYGLOW_HOST, else the rpi5 IP from LOCAL-SETUP
--- (update if DHCP moves it).
-require('rayglow').setup({
-  ctl  = vim.fn.expand('~/Projects/rayglow/tools/rayglow_ctl.py'),
-  host = vim.env.RAYGLOW_HOST or '192.168.2.113',
-})
+-- Opt in with RAYGLOW_HOST; a checkout and Python must also be present.
+-- Automatic pushes are restricted to the selected shader project.
+local rayglow_ctl = vim.fn.expand('~/Projects/rayglow/tools/rayglow_ctl.py')
+if vim.env.RAYGLOW_HOST and vim.fn.filereadable(rayglow_ctl) == 1 and vim.fn.executable('python3') == 1 then
+  require('rayglow').setup({
+    ctl = rayglow_ctl,
+    host = vim.env.RAYGLOW_HOST,
+    shader_root = vim.env.RAYGLOW_SHADER_ROOT or vim.fn.expand('~/Projects/rayglow'),
+  })
+end

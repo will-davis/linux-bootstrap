@@ -1,0 +1,52 @@
+<gui name="dolphin" translationDomain="kxmlgui6" version="49">
+  <ToolBar alreadyVisited="1" name="mainToolBar" noMerge="1">
+    <Action name="go_back" />
+    <text context="@title:menu" translationDomain="dolphin">Main Toolbar</text>
+    <Action name="go_forward" />
+    <Action name="go_up" />
+    <Separator name="separator_0" />
+    <Action name="new_tab" />
+    <Action name="split_view" />
+    <Separator name="separator_1" />
+    <Action name="open_terminal_here" />
+    <Action name="url_navigators" />
+    <Action name="split_stash" />
+    <Separator name="separator_2" />
+    <Action name="sort_by_text" />
+    <Action name="sort_by_modificationtime" />
+    <Action name="sort_by_size" />
+    <Separator name="separator_3" />
+    <Action name="icons" />
+    <Action name="details" />
+    <Action name="show_hidden_files" />
+    <Separator name="separator_4" />
+    <Action name="hamburger_menu" />
+    <Action name="show_information_panel" />
+  </ToolBar>
+  <ActionProperties scheme="Default">
+    <Action icon="@BOOTSTRAP_ICONS@/go-previous.svg" name="go_back" priority="0" />
+    <Action icon="@BOOTSTRAP_ICONS@/go-next.svg" name="go_forward" priority="0" />
+    <Action icon="@BOOTSTRAP_ICONS@/bqm-commit.svg" name="go_up" priority="0" />
+    <Action name="go_home" priority="0" />
+    <Action name="stop" priority="0" />
+    <Action name="icons" priority="0" />
+    <Action name="compact" priority="0" />
+    <Action name="details" priority="0" />
+    <Action name="view_mode" priority="0" />
+    <Action name="view_settings" priority="0" />
+    <Action name="view_zoom_in" priority="0" />
+    <Action name="view_zoom_reset" priority="0" />
+    <Action name="view_zoom_out" priority="0" />
+    <Action name="edit_cut" priority="0" />
+    <Action name="edit_copy" priority="0" />
+    <Action name="edit_paste" priority="0" />
+    <Action name="toggle_search" priority="0" />
+    <Action name="toggle_filter" priority="0" />
+    <Action icon="view-hidden" name="show_hidden_files" priority="0" />
+    <Action name="new_tab" priority="0" />
+    <Action icon="@BOOTSTRAP_ICONS@/appimagekit-kitty.svg" name="show_terminal_panel" priority="0" />
+    <Action name="split_view" priority="0" />
+    <Action icon="@BOOTSTRAP_ICONS@/appimagekit-kitty.svg" name="open_terminal_here" priority="0" />
+    <Action name="show_information_panel" priority="0" />
+  </ActionProperties>
+</gui>
