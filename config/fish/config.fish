@@ -24,6 +24,17 @@ end
 # On machines that have kitty, make plain `ssh` carry terminfo along.
 command -q kitten; and alias ssh='kitten ssh'
 
+# yazi shim to maintain path on exit
+# This has to go BEFORE zoxide!!
+function y
+	set tmp (mktemp -t "yazi-cwd.XXXXXX")
+	command yazi $argv --cwd-file="$tmp"
+	if set cwd (command cat -- "$tmp"); and [ -n "$cwd" ]; and [ "$cwd" != "$PWD" ]
+		builtin cd -- "$cwd"
+	end
+	rm -f -- "$tmp"
+end
+
 # ── tool init ───────────────────────────────────────────────────────────────
 command -q zoxide; and zoxide init fish | source
 # fzf >= 0.48 grew a native fish integration: ctrl-r history, ctrl-t files,
@@ -40,9 +51,10 @@ command -q fzf; and fzf --fish 2>/dev/null | source
 #   -t f / -t d         files for the finder; dirs for alt-c's cd
 #   --strip-cwd-prefix  drop the leading "./" from results
 if command -q fd
-    set -gx FZF_DEFAULT_COMMAND 'fd -t f --hidden --strip-cwd-prefix'
+    set -gx FZF_DEFAULT_COMMAND 'fd -t f --hidden --strip-cwd-prefix --no-ignore --exclude .git'
     set -gx FZF_CTRL_T_COMMAND $FZF_DEFAULT_COMMAND
     set -gx FZF_ALT_C_COMMAND 'fd -t d --hidden --strip-cwd-prefix'
+set -gx FZF_CTRL_T_COMMAND "$FZF_DEFAULT_COMMAND"
 end
 
 # atuin: SQLite-backed shell history with fuzzy Ctrl-R + cross-machine sync.
@@ -56,6 +68,13 @@ set -gx GIT_DISCOVERY_ACROSS_FILESYSTEM 1 # github discovery across FS boundarie
 
 # ── OTHER --------───────────────────────────────────────────────────────────
 
+set -gx EDITOR nvim
+set -gx VISUAL nvim
+
+if status is-interactive
+    fish_vi_key_bindings
+end
+
 # Hotwire muscle-memory `ls` -> eza. Guarded: on a box without eza (fresh, or
 # unsupported arch) these don't fire and `ls` stays real coreutils ls instead
 # of erroring "command not found: eza". abbrs are interactive + command-position
@@ -64,14 +83,19 @@ if command -q eza
     abbr -a ls 'eza'
     abbr -a l 'eza'
 end
-abbr -a y 'yazi'
+
+alias yazi 'y'
 abbr -a pngnumber 'set a 1; for i in *; mv -- "$i" "$a.png"; set a (math $a + 1); end'
+
 
 # ── desktop-only ────────────────────────────────────────────────────────────
 if test (hostname) = will-desktop
     abbr -a comv 'source ~/comfyui-venv/ComfyUI/.venv/bin/activate.fish && uv run ~/comfyui-venv/ComfyUI/main.py --enable-manager'
     abbr -a png '~/.local/bin/organize_pngs.sh'
-
+    abbr -a rgc 'python3 ~/Projects/rayglow/tools/rayglow_ctl.py'
+    abbr -a soundbr 'cd ~/Projects/rayglow/sender/ && uv run sender.py'
+    abbr -a rg-agent 'cd ~/Projects/rayglow-agent/ && npm run tui -- --preview-fps 120' 
+    abbr -a rg-tui 'cd ~/Projects/rayglow-terminal-control/ && uv run rayglow-tui'
     function hey
         /home/will/.local/bin/hey_llamacpp.py $argv
     end
@@ -80,3 +104,7 @@ if test (hostname) = will-desktop
     end
 end
 
+
+
+# Added by Antigravity CLI installer
+set -gx PATH "/home/will/.local/bin" $PATH
