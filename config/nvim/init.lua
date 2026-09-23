@@ -306,7 +306,7 @@ require('lazy').setup({
     end,
   },
   {
-    'yetone/avante.nvim',
+    'avante-corp/avante.nvim',
     enabled = vim.env.LINUX_BOOTSTRAP_AI ~= '0',
     event = 'VeryLazy',
     version = false,

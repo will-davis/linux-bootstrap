@@ -67,7 +67,9 @@ release_install() { python3 "$REPO_DIR/scripts/releases.py" install "$1" --arch 
 remapper_recent_enough() {
     command -v input-remapper-control >/dev/null || return 1
     local version
-    version=$(input-remapper-control --version 2>/dev/null | sed -n '1s/^input-remapper \([0-9][0-9.]*\).*/\1/p') || return 1
+    # Upstream logs --version to stderr. Match the version line rather than
+    # the first line: startup diagnostics may precede it on a fresh install.
+    version=$(input-remapper-control --version 2>&1 | sed -n 's/^input-remapper \([0-9][0-9.]*\).*/\1/p') || return 1
     [[ -n $version ]] && version_at_least "$version" 2.2.1
 }
 install_core() {

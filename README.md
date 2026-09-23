@@ -33,6 +33,13 @@ Flags also work through the pipe: append `| bash -s -- --profile headless`.
 The script may ask for sudo authentication, AUR review, or confirmation of a
 conflicting Sublime package replacement. It does not install Plasma itself.
 
+If an installation stops after installing packages, the configuration stage may
+not have run yet. Fix the reported error and rerun the checkout's `bootstrap.sh`;
+it retains installed packages and backs up existing configuration before linking.
+When all applications are already installed, `--config-only` can finish the user
+settings without sudo. It does not enable the Input-remapper system service;
+that requires `sudo systemctl enable --now input-remapper.service`.
+
 ## Selection rules
 
 There are no hostname checks. KDE is selected when `XDG_CURRENT_DESKTOP` includes
@@ -246,12 +253,17 @@ calls, with no sudo or external services:
 uv run --no-project python -m unittest discover -s tests -v
 ```
 
-The development validation includes syntax checks, repeat config application,
+The development validation includes syntax checks, repeat config application
+from both fresh and existing settings, Input-remapper's stderr version output,
 KDE merge/conflict and local-device preservation, fd behavior, staged-download
 failure handling, and a real minimal Neovim launch. Full Neovim startup is checked
 separately against copies of the pinned plugins. Official x86-64 release binaries
 are downloaded and executed in a temporary home during release validation.
 
-A complete apt/ARM package installation, PostgreSQL provisioning, and the final
-KDE/mouse behavior on `will-lab` still need target-machine verification. These are
-not implied by the offline checks. There is no Docker/VM test requirement.
+A CachyOS installation on `will-lab` confirmed the package set and configuration
+links, Fish bindings, KDE launcher entries, and the running trackball preset.
+Full Neovim also passed a fresh plugin/native-library installation and completed
+all five Mason language-server installations there. Final GUI/physical mouse
+behavior, a complete apt/ARM package installation, and PostgreSQL provisioning
+still need target-machine verification. These are not implied by the offline
+checks. There is no Docker/VM test requirement.

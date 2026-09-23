@@ -89,6 +89,15 @@ class DesktopTests(unittest.TestCase):
         self.assertTrue(path.is_symlink())
         self.assertIn('Key=new', target.read_text())
 
+    def test_fresh_desktop_application_is_idempotent(self):
+        # A fresh install has no toolbar or ActionProperties yet. Replacing
+        # the toolbar must not move it past the newly added ActionProperties.
+        desktop.apply(self.repo)
+        before = {str(p): p.read_bytes() for root in [self.config, self.data] for p in root.rglob('*') if p.is_file()}
+        desktop.apply(self.repo)
+        after = {str(p): p.read_bytes() for root in [self.config, self.data] for p in root.rglob('*') if p.is_file()}
+        self.assertEqual(before, after)
+
 class ReleaseTests(unittest.TestCase):
     def test_checksum_failure_does_not_replace_existing_binary(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -116,6 +125,32 @@ class ReleaseTests(unittest.TestCase):
             self.assertFalse((root / 'escaped').exists())
 
 class ShellTests(unittest.TestCase):
+    def test_remapper_version_accepts_stderr_and_startup_diagnostics(self):
+        script = '''
+set -euo pipefail
+source "$1/lib/bootstrap.sh"
+input-remapper-control() {
+    printf 'Config not initialized yet\\n' >&2
+    printf 'input-remapper 2.2.1 commit https://github.com/sezanzeb/input-remapper\\n' >&2
+    printf 'python-evdev 2.0.0\\n' >&2
+}
+remapper_recent_enough
+'''
+        result = subprocess.run(['bash', '-c', script, 'bash', str(REPO)], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_remapper_version_rejects_old_or_failed_command(self):
+        for version, status in [('2.1.1', 0), ('2.2.1', 1)]:
+            with self.subTest(version=version, status=status):
+                script = '''
+set -euo pipefail
+source "$1/lib/bootstrap.sh"
+input-remapper-control() { printf 'input-remapper %s\\n' "$TEST_VERSION" >&2; return "$TEST_STATUS"; }
+remapper_recent_enough
+'''
+                result = subprocess.run(['bash', '-c', script, 'bash', str(REPO)], env=os.environ | {'TEST_VERSION': version, 'TEST_STATUS': str(status)}, capture_output=True, text=True)
+                self.assertNotEqual(result.returncode, 0)
+
     def test_rayglow_auto_push_stays_inside_project(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

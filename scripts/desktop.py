@@ -205,8 +205,12 @@ def apply(repo):
                 if existing is None: match.append(action)
                 else: existing.attrib.update(action.attrib)
         else:
-            if match is not None: root.remove(match)
-            root.append(managed)
+            if match is not None:
+                position = list(root).index(match)
+                root.remove(match)
+                root.insert(position, managed)
+            else:
+                root.append(managed)
     ET.indent(root)
     write_changed(toolbar_path, ET.tostring(root, encoding="utf-8") + b"\n")
     install_remapper(repo)
